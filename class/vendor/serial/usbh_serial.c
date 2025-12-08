@@ -7,7 +7,7 @@
 #define DEV_FORMAT "/dev/ttyUSB%d"
 
 /* Pool allocator for serial instances */
-#define SERIAL_IOBUF_SIZE 64
+#define SERIAL_IOBUF_SIZE               64
 #define CONFIG_USBHOST_MAX_SERIAL_CLASS 4
 static struct usbh_serial g_serial_class[CONFIG_USBHOST_MAX_SERIAL_CLASS];
 static uint32_t g_devinuse = 0;
@@ -94,7 +94,8 @@ struct usbh_serial *usbh_serial_probe(struct usbh_hubport *hport, uint8_t intf,
 
 void usbh_serial_release(struct usbh_serial *serial)
 {
-    if (!serial) return;
+    if (!serial)
+        return;
 
     if (serial->bulkin) {
         usbh_kill_urb(&serial->bulkin_urb);
@@ -116,7 +117,8 @@ int usbh_serial_bulk_in_transfer(struct usbh_serial *serial, uint8_t *buffer, ui
     int ret;
     struct usbh_urb *urb = &serial->bulkin_urb;
 
-    if (!serial || !serial->bulkin) return -USB_ERR_INVAL;
+    if (!serial || !serial->bulkin)
+        return -USB_ERR_INVAL;
 
     usbh_bulk_urb_fill(urb, serial->hport, serial->bulkin, buffer, buflen, timeout, NULL, NULL);
     ret = usbh_submit_urb(urb);
@@ -143,7 +145,8 @@ int usbh_serial_bulk_out_transfer(struct usbh_serial *serial, uint8_t *buffer, u
     int ret;
     struct usbh_urb *urb = &serial->bulkout_urb;
 
-    if (!serial || !serial->bulkout) return -USB_ERR_INVAL;
+    if (!serial || !serial->bulkout)
+        return -USB_ERR_INVAL;
 
     usbh_bulk_urb_fill(urb, serial->hport, serial->bulkout, buffer, buflen, timeout, NULL, NULL);
     ret = usbh_submit_urb(urb);

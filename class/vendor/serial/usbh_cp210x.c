@@ -95,10 +95,12 @@ static int cp210x_set_line_coding(struct usbh_serial *serial, struct cdc_line_co
     int ret;
     uint16_t value;
 
-    if (!serial || !serial->hport) return -USB_ERR_INVAL;
+    if (!serial || !serial->hport)
+        return -USB_ERR_INVAL;
 
     ret = cp210x_set_baudrate(serial, line_coding->dwDTERate);
-    if (ret < 0) return ret;
+    if (ret < 0)
+        return ret;
 
     /*
      * Bits 15-8: Word length, legal values are 5, 6, 7 and 8.
@@ -154,8 +156,10 @@ static int cp210x_set_line_state(struct usbh_serial *serial, bool dtr, bool rts)
      * We want to write BOTH DTR and RTS (Mask = 0x0300)
      */
     value = 0x0300;
-    if (dtr) value |= 0x01;
-    if (rts) value |= 0x02;
+    if (dtr)
+        value |= 0x01;
+    if (rts)
+        value |= 0x02;
 
     setup->bmRequestType = USB_REQUEST_DIR_OUT | USB_REQUEST_VENDOR | USB_REQUEST_RECIPIENT_INTERFACE;
     setup->bRequest = CP210X_SET_MHS;
@@ -173,19 +177,23 @@ static int cp210x_attach(struct usbh_serial *serial)
 
     /* Allocate Private Data */
     priv = usb_osal_malloc(sizeof(struct cp210x_priv));
-    if (!priv) return -USB_ERR_NOMEM;
+    if (!priv)
+        return -USB_ERR_NOMEM;
     memset(priv, 0, sizeof(struct cp210x_priv));
     serial->priv = priv;
 
     /* Hardware Init Sequence */
     ret = cp210x_enable(serial);
-    if (ret < 0) return ret;
+    if (ret < 0)
+        return ret;
 
     ret = cp210x_set_flow(serial);
-    if (ret < 0) return ret;
+    if (ret < 0)
+        return ret;
 
     ret = cp210x_set_chars(serial);
-    if (ret < 0) return ret;
+    if (ret < 0)
+        return ret;
 
     return 0;
 }
@@ -199,11 +207,11 @@ static void cp210x_detach(struct usbh_serial *serial)
 }
 
 static const struct usbh_serial_driver cp210x_drv = {
-        .driver_name = "cp210x",
-        .attach = cp210x_attach,
-        .detach = cp210x_detach,
-        .set_line_coding = cp210x_set_line_coding,
-        .set_line_state = cp210x_set_line_state,
+    .driver_name = "cp210x",
+    .attach = cp210x_attach,
+    .detach = cp210x_detach,
+    .set_line_coding = cp210x_set_line_coding,
+    .set_line_state = cp210x_set_line_state,
 };
 
 static int usbh_cp210x_connect(struct usbh_hubport *hport, uint8_t intf)
@@ -227,21 +235,21 @@ static int usbh_cp210x_disconnect(struct usbh_hubport *hport, uint8_t intf)
 }
 
 static const uint16_t cp210x_id_table[][2] = {
-        { 0x10C4, 0xEA60 },
-        { 0, 0 },
+    { 0x10C4, 0xEA60 },
+    { 0, 0 },
 };
 
 const struct usbh_class_driver cp210x_class_driver = {
-        .driver_name = "cp210x",
-        .connect = usbh_cp210x_connect,
-        .disconnect = usbh_cp210x_disconnect
+    .driver_name = "cp210x",
+    .connect = usbh_cp210x_connect,
+    .disconnect = usbh_cp210x_disconnect
 };
 
 CLASS_INFO_DEFINE const struct usbh_class_info cp210x_class_info = {
-        .match_flags = USB_CLASS_MATCH_VID_PID | USB_CLASS_MATCH_INTF_CLASS,
-        .bInterfaceClass = 0xff,
-        .bInterfaceSubClass = 0x00,
-        .bInterfaceProtocol = 0x00,
-        .id_table = cp210x_id_table,
-        .class_driver = &cp210x_class_driver
+    .match_flags = USB_CLASS_MATCH_VID_PID | USB_CLASS_MATCH_INTF_CLASS,
+    .bInterfaceClass = 0xff,
+    .bInterfaceSubClass = 0x00,
+    .bInterfaceProtocol = 0x00,
+    .id_table = cp210x_id_table,
+    .class_driver = &cp210x_class_driver
 };

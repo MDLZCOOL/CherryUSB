@@ -66,7 +66,8 @@ static int ch34x_set_line_coding(struct usbh_serial *serial, struct cdc_line_cod
     uint8_t factor = 0;
     uint8_t divisor = 0;
 
-    if (!serial || !serial->hport) return -USB_ERR_INVAL;
+    if (!serial || !serial->hport)
+        return -USB_ERR_INVAL;
     setup = serial->hport->setup;
 
     if (priv) {
@@ -74,20 +75,39 @@ static int ch34x_set_line_coding(struct usbh_serial *serial, struct cdc_line_cod
     }
 
     switch (line_coding->bParityType) {
-        case 0: break;
-        case 1: reg_value |= CH341_L_PO; break;
-        case 2: reg_value |= CH341_L_PE; break;
-        case 3: reg_value |= CH341_L_PM; break;
-        case 4: reg_value |= CH341_L_PS; break;
-        default: return -USB_ERR_INVAL;
+        case 0:
+            break;
+        case 1:
+            reg_value |= CH341_L_PO;
+            break;
+        case 2:
+            reg_value |= CH341_L_PE;
+            break;
+        case 3:
+            reg_value |= CH341_L_PM;
+            break;
+        case 4:
+            reg_value |= CH341_L_PS;
+            break;
+        default:
+            return -USB_ERR_INVAL;
     }
 
     switch (line_coding->bDataBits) {
-        case 5: reg_value |= CH341_L_D5; break;
-        case 6: reg_value |= CH341_L_D6; break;
-        case 7: reg_value |= CH341_L_D7; break;
-        case 8: reg_value |= CH341_L_D8; break;
-        default: return -USB_ERR_INVAL;
+        case 5:
+            reg_value |= CH341_L_D5;
+            break;
+        case 6:
+            reg_value |= CH341_L_D6;
+            break;
+        case 7:
+            reg_value |= CH341_L_D7;
+            break;
+        case 8:
+            reg_value |= CH341_L_D8;
+            break;
+        default:
+            return -USB_ERR_INVAL;
     }
 
     if (line_coding->bCharFormat == 2) {
@@ -114,15 +134,18 @@ static int ch34x_set_line_state(struct usbh_serial *serial, bool dtr, bool rts)
     struct usb_setup_packet *setup;
     struct ch34x_priv *priv = (struct ch34x_priv *)serial->priv;
 
-    if (!serial || !serial->hport) return -USB_ERR_INVAL;
+    if (!serial || !serial->hport)
+        return -USB_ERR_INVAL;
     setup = serial->hport->setup;
 
     priv->dtr_state = dtr;
     priv->rts_state = rts;
 
     uint16_t wValue = 0x0f;
-    if (priv->dtr_state) wValue |= (1 << 5);
-    if (priv->rts_state) wValue |= (1 << 6);
+    if (priv->dtr_state)
+        wValue |= (1 << 5);
+    if (priv->rts_state)
+        wValue |= (1 << 6);
 
     setup->bmRequestType = USB_REQUEST_DIR_OUT | USB_REQUEST_VENDOR | USB_REQUEST_RECIPIENT_DEVICE;
     setup->bRequest = CH34X_MODEM_CTRL;
@@ -141,7 +164,8 @@ static int ch34x_attach(struct usbh_serial *serial)
 
     /* Allocate Private Data */
     priv = usb_osal_malloc(sizeof(struct ch34x_priv));
-    if (!priv) return -USB_ERR_NOMEM;
+    if (!priv)
+        return -USB_ERR_NOMEM;
     memset(priv, 0, sizeof(struct ch34x_priv));
     serial->priv = priv;
 
@@ -153,7 +177,8 @@ static int ch34x_attach(struct usbh_serial *serial)
     setup->wLength = 2;
 
     ret = usbh_control_transfer(serial->hport, setup, buffer);
-    if (ret < 0) return ret;
+    if (ret < 0)
+        return ret;
 
     USB_LOG_INFO("Ch34x chip version %02x:%02x\r\n", buffer[0], buffer[1]);
 
@@ -177,11 +202,11 @@ static void ch34x_detach(struct usbh_serial *serial)
 }
 
 static const struct usbh_serial_driver ch34x_drv = {
-        .driver_name = "ch34x",
-        .attach = ch34x_attach,
-        .detach = ch34x_detach,
-        .set_line_coding = ch34x_set_line_coding,
-        .set_line_state = ch34x_set_line_state,
+    .driver_name = "ch34x",
+    .attach = ch34x_attach,
+    .detach = ch34x_detach,
+    .set_line_coding = ch34x_set_line_coding,
+    .set_line_state = ch34x_set_line_state,
 };
 
 static int usbh_ch34x_connect(struct usbh_hubport *hport, uint8_t intf)
@@ -205,21 +230,21 @@ static int usbh_ch34x_disconnect(struct usbh_hubport *hport, uint8_t intf)
 }
 
 static const uint16_t ch34x_id_table[][2] = {
-        { 0x1a86, 0x7523 },
-        { 0, 0 },
+    { 0x1a86, 0x7523 },
+    { 0, 0 },
 };
 
 const struct usbh_class_driver ch34x_class_driver = {
-        .driver_name = "ch34x",
-        .connect = usbh_ch34x_connect,
-        .disconnect = usbh_ch34x_disconnect
+    .driver_name = "ch34x",
+    .connect = usbh_ch34x_connect,
+    .disconnect = usbh_ch34x_disconnect
 };
 
 CLASS_INFO_DEFINE const struct usbh_class_info ch34x_class_info = {
-        .match_flags = USB_CLASS_MATCH_VID_PID | USB_CLASS_MATCH_INTF_CLASS,
-        .bInterfaceClass = 0xff,
-        .bInterfaceSubClass = 0x00,
-        .bInterfaceProtocol = 0x00,
-        .id_table = ch34x_id_table,
-        .class_driver = &ch34x_class_driver
+    .match_flags = USB_CLASS_MATCH_VID_PID | USB_CLASS_MATCH_INTF_CLASS,
+    .bInterfaceClass = 0xff,
+    .bInterfaceSubClass = 0x00,
+    .bInterfaceProtocol = 0x00,
+    .id_table = ch34x_id_table,
+    .class_driver = &ch34x_class_driver
 };
