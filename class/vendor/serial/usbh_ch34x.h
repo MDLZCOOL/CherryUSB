@@ -40,6 +40,7 @@
 #define CH341_L_D6 0x01
 #define CH341_L_D5 0x00
 
+/* CH34X Private Data */
 struct ch34x_priv {
     struct cdc_line_coding line_coding;
     uint8_t dtr_state;
