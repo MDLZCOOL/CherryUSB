@@ -22,6 +22,8 @@ struct usbh_serial_driver {
     int (*set_line_coding)(struct usbh_serial *serial, struct cdc_line_coding *line_coding);
     int (*get_line_coding)(struct usbh_serial *serial, struct cdc_line_coding *line_coding);
     int (*set_line_state)(struct usbh_serial *serial, bool dtr, bool rts);
+
+    int (*bulk_in_process)(struct usbh_serial *serial, uint8_t *buf, uint32_t len);
 };
 
 /**
@@ -34,8 +36,8 @@ struct usbh_serial {
 
     struct usb_endpoint_descriptor *bulkin;  /* Bulk IN endpoint */
     struct usb_endpoint_descriptor *bulkout; /* Bulk OUT endpoint */
-    struct usbh_urb bulkout_urb;             /* Bulk OUT urb */
-    struct usbh_urb bulkin_urb;              /* Bulk IN urb */
+    struct usbh_urb bulkout_urb;
+    struct usbh_urb bulkin_urb;
 
     const struct usbh_serial_driver *driver;
 

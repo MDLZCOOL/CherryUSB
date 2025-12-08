@@ -131,6 +131,10 @@ int usbh_serial_bulk_in_transfer(struct usbh_serial *serial, uint8_t *buffer, ui
         }
     }
 
+    if (ret > 0 && serial->driver->bulk_in_process) {
+        ret = serial->driver->bulk_in_process(serial, buffer, ret);
+    }
+
     return ret;
 }
 
