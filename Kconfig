@@ -357,25 +357,31 @@ if CHERRYUSB
             select USBHOST_PLATFORM_RTL8152
             default n
 
-        config CHERRYUSB_HOST_FTDI
-            bool
-            prompt "Enable usb ftdi driver"
+        menuconfig CHERRYUSB_HOST_SERIAL
+            bool "Enable usb serial class driver"
             default n
 
-        config CHERRYUSB_HOST_CH34X
-            bool
-            prompt "Enable usb ch34x driver"
-            default n
+        if CHERRYUSB_HOST_SERIAL
+            config CHERRYUSB_HOST_FTDI
+                bool
+                prompt "Enable usb ftdi driver"
+                default n
 
-        config CHERRYUSB_HOST_CP210X
-            bool
-            prompt "Enable usb cp210x driver"
-            default n
+            config CHERRYUSB_HOST_CH34X
+                bool
+                prompt "Enable usb ch34x driver"
+                default n
 
-        config CHERRYUSB_HOST_PL2303
-            bool
-            prompt "Enable usb pl2303 driver"
-            default n
+            config CHERRYUSB_HOST_CP210X
+                bool
+                prompt "Enable usb cp210x driver"
+                default n
+
+            config CHERRYUSB_HOST_PL2303
+                bool
+                prompt "Enable usb pl2303 driver"
+                default n
+        endif
 
         config CHERRYUSB_HOST_AOA
             bool
