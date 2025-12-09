@@ -4,7 +4,7 @@
 #define USB_DBG_TAG "usbh_serial"
 #include "usb_log.h"
 
-#define DEV_FORMAT "/dev/ttyUSB%d"
+#define DEV_FORMAT         "/dev/ttyUSB%d"
 #define DEV_FORMAT_CDC_ACM "/dev/ttyACM%d"
 #define GET_SERIAL_DEV_FMT(driver_name) \
     ((driver_name && strcmp(driver_name, "cdc_acm") == 0) ? DEV_FORMAT_CDC_ACM : DEV_FORMAT)
@@ -65,7 +65,7 @@ int usbh_serial_write(struct usbh_serial *serial, const uint8_t *buffer, uint32_
     int ret;
     struct usbh_urb *urb;
 
-    if (!serial || !serial->bulkout){
+    if (!serial || !serial->bulkout) {
         return -USB_ERR_INVAL;
     }
     urb = &serial->bulkout_urb;
@@ -109,14 +109,16 @@ int usbh_serial_read(struct usbh_serial *serial, uint8_t *buffer, uint32_t bufle
     return ret;
 }
 
-int usbh_serial_start_read_it(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen,
+int usbh_serial_read_async(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen,
                            usbh_serial_rx_cb_t cb, void *arg)
 {
     struct usbh_urb *urb;
     int ret;
 
-    if (!serial || !serial->bulkin || !buffer || !cb) return -USB_ERR_INVAL;
-    if (serial->rx_cb) return -USB_ERR_BUSY;
+    if (!serial || !serial->bulkin || !buffer || !cb)
+        return -USB_ERR_INVAL;
+    if (serial->rx_cb)
+        return -USB_ERR_BUSY;
 
     serial->rx_cb = cb;
     serial->rx_cb_arg = arg;
@@ -132,15 +134,6 @@ int usbh_serial_start_read_it(struct usbh_serial *serial, uint8_t *buffer, uint3
         return ret;
     }
     return 0;
-}
-
-void usbh_serial_stop_read_it(struct usbh_serial *serial)
-{
-    if (serial && serial->bulkin) {
-        serial->rx_cb = NULL;
-        serial->rx_cb_arg = NULL;
-        usbh_kill_urb(&serial->bulkin_urb);
-    }
 }
 
 struct usbh_serial *usbh_serial_probe(struct usbh_hubport *hport, uint8_t intf,
@@ -203,6 +196,9 @@ void usbh_serial_release(struct usbh_serial *serial)
 {
     if (!serial)
         return;
+
+    serial->rx_cb = NULL;
+    serial->rx_cb_arg = NULL;
 
     if (serial->bulkin) {
         usbh_kill_urb(&serial->bulkin_urb);

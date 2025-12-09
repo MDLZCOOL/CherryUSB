@@ -32,7 +32,7 @@ struct usbh_serial_driver {
  */
 struct usbh_serial {
     struct usbh_hubport *hport;
-    uint8_t intf; /* Interface Number */
+    uint8_t intf;  /* Interface Number */
     uint8_t minor; /* Serial Port Number (/dev/ttyUSBx) */
 
     struct usb_endpoint_descriptor *bulkin;  /* Bulk IN endpoint */
@@ -46,16 +46,14 @@ struct usbh_serial {
     void *rx_cb_arg;
 };
 
-struct usbh_serial *usbh_serial_probe(struct usbh_hubport *hport, uint8_t intf,
-                                      const struct usbh_serial_driver *driver);
+struct usbh_serial *usbh_serial_probe(struct usbh_hubport *hport, uint8_t intf, const struct usbh_serial_driver *driver);
 void usbh_serial_release(struct usbh_serial *serial);
 int usbh_serial_set_line_coding(struct usbh_serial *serial, uint32_t baudrate, uint8_t databits, uint8_t parity, uint8_t stopbits);
 int usbh_serial_set_flow_control(struct usbh_serial *serial, bool enable);
 int usbh_serial_set_dtr_rts(struct usbh_serial *serial, bool dtr, bool rts);
 int usbh_serial_write(struct usbh_serial *serial, const uint8_t *buffer, uint32_t buflen, uint32_t timeout);
 int usbh_serial_read(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen, uint32_t timeout);
-int usbh_serial_start_read_it(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen, usbh_serial_rx_cb_t cb, void *arg);
-void usbh_serial_stop_read_it(struct usbh_serial *serial);
+int usbh_serial_read_async(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen, usbh_serial_rx_cb_t cb, void *arg);
 
 #ifdef __cplusplus
 }
