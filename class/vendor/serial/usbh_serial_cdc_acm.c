@@ -85,45 +85,12 @@ static int cdc_acm_attach(struct usbh_serial *serial)
     struct cdc_acm_private *private = get_private(serial);
     struct usbh_hubport *hport = serial->hport;
     struct usb_endpoint_descriptor *ep_desc;
-    uint8_t data_intf;
+    uint8_t data_intf = serial->intf + 1;
     int i;
 
     if (!private)
         return -USB_ERR_NOMEM;
     memset(private, 0, sizeof(struct cdc_acm_private));
-
-    uint8_t *p = serial->hport->raw_config_desc;
-    uint32_t total_len = serial->hport->config.config_desc.wTotalLength;
-    uint8_t found = 0;
-
-    while (total_len > 0) {
-        uint8_t len = p[0];
-        uint8_t type = p[1];
-
-        if (type == CDC_CS_INTERFACE && len >= 5 && p[2] == CDC_FUNC_DESC_UNION) {
-            uint8_t master_intf = p[3];
-            uint8_t slave_intf = p[4];
-
-            if (master_intf == serial->intf) {
-                data_intf = slave_intf;
-                found = 1;
-                USB_LOG_INFO("Found Union Desc, Master=%d, Slave=%d\r\n", master_intf, slave_intf);
-                break;
-            }
-        }
-
-        if (len == 0)
-            break;
-        if (total_len < len)
-            break;
-        p += len;
-        total_len -= len;
-    }
-
-    if (!found) {
-        USB_LOG_WRN("Union Desc not found, fallback to intf+1\r\n");
-        data_intf = serial->intf + 1;
-    }
 
     if (data_intf >= hport->config.config_desc.bNumInterfaces) {
         USB_LOG_ERR("Missing Data Interface\r\n");
@@ -156,7 +123,7 @@ static int cdc_acm_attach(struct usbh_serial *serial)
         return -USB_ERR_NODEV;
     }
 
-#ifdef CONFIG_CHERRYUSB_HOST_SERIAL_CDC_ACM_NOTIFY
+#ifdef CONFIG_USBHOST_CDC_ACM_NOTIFY
     struct usbh_interface *ctl_iface = &serial->hport->config.intf[serial->intf];
     struct usb_endpoint_descriptor *ep_desc;
     int ret;
@@ -285,9 +252,3 @@ CLASS_INFO_DEFINE const struct usbh_class_info cdc_data_class_info = {
     .id_table = NULL,
     .class_driver = &cdc_data_class_driver
 };
-
-// just a temporary workaround
-void usbh_cdc_acm_force_link(void)
-{
-    USB_LOG_INFO("force linked\r\n");
-}
