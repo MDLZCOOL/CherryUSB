@@ -9,24 +9,43 @@
 #define USB_DBG_TAG "usbh_ch34x"
 #include "usb_log.h"
 
+/* CH34X privateate Data */
+struct ch34x_private {
+    uint8_t dtr_state;
+    uint8_t rts_state;
+};
+
+USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX static struct ch34x_private g_ch34x_data[CONFIG_USBHOST_MAX_SERIAL_CLASS];
+
+static struct ch34x_private *get_private(struct usbh_serial *serial)
+{
+    if (serial->minor < CONFIG_USBHOST_MAX_SERIAL_CLASS) {
+        return &g_ch34x_data[serial->minor];
+    }
+    return NULL;
+}
+
 static int usbh_ch34x_get_baudrate_div(uint32_t baudrate, uint8_t *factor, uint8_t *divisor)
 {
-    uint8_t a;
-    uint8_t b;
-    uint32_t c;
+    unsigned char a;
+    unsigned char b;
+    unsigned long c;
 
     switch (baudrate) {
         case 921600:
+
             a = 0xf3;
             b = 7;
             break;
 
         case 307200:
+
             a = 0xd9;
             b = 7;
             break;
 
         default:
+
             if (baudrate > 6000000 / 255) {
                 b = 3;
                 c = 6000000;
@@ -40,90 +59,35 @@ static int usbh_ch34x_get_baudrate_div(uint32_t baudrate, uint8_t *factor, uint8
                 b = 0;
                 c = 11719;
             }
-            a = (uint8_t)(c / baudrate);
-            if (a == 0 || a == 0xFF) {
+
+            a = (unsigned char)(c / baudrate);
+            if (a == 0 || a == 0xFF)
                 return -USB_ERR_INVAL;
-            }
-            if ((c / a - baudrate) > (baudrate - c / (a + 1))) {
+            if ((c / a - baudrate) > (baudrate - c / (a + 1)))
                 a++;
-            }
-            a = (uint8_t)(256 - a);
+            a = 256 - a;
             break;
     }
 
     *factor = a;
     *divisor = b;
-
     return 0;
 }
 
-static int ch34x_set_line_coding(struct usbh_serial *serial, struct cdc_line_coding *line_coding)
+static int ch34x_write_handshake(struct usbh_serial *serial, uint8_t dtr, uint8_t rts)
 {
-    struct usb_setup_packet *setup;
-    struct ch34x_priv *priv = (struct ch34x_priv *)serial->priv;
-    uint16_t reg_value = 0;
-    uint16_t value = 0;
-    uint8_t factor = 0;
-    uint8_t divisor = 0;
+    struct usb_setup_packet *setup = serial->hport->setup;
 
-    if (!serial || !serial->hport)
-        return -USB_ERR_INVAL;
-    setup = serial->hport->setup;
-
-    if (priv) {
-        memcpy(&priv->line_coding, line_coding, sizeof(struct cdc_line_coding));
-    }
-
-    switch (line_coding->bParityType) {
-        case 0:
-            break;
-        case 1:
-            reg_value |= CH341_L_PO;
-            break;
-        case 2:
-            reg_value |= CH341_L_PE;
-            break;
-        case 3:
-            reg_value |= CH341_L_PM;
-            break;
-        case 4:
-            reg_value |= CH341_L_PS;
-            break;
-        default:
-            return -USB_ERR_INVAL;
-    }
-
-    switch (line_coding->bDataBits) {
-        case 5:
-            reg_value |= CH341_L_D5;
-            break;
-        case 6:
-            reg_value |= CH341_L_D6;
-            break;
-        case 7:
-            reg_value |= CH341_L_D7;
-            break;
-        case 8:
-            reg_value |= CH341_L_D8;
-            break;
-        default:
-            return -USB_ERR_INVAL;
-    }
-
-    if (line_coding->bCharFormat == 2) {
-        reg_value |= CH341_L_SB;
-    }
-
-    reg_value |= 0xC0;
-    value |= 0x9c;
-    value |= reg_value << 8;
-
-    usbh_ch34x_get_baudrate_div(line_coding->dwDTERate, &factor, &divisor);
+    uint16_t wValue = 0xff;
+    if (dtr)
+        wValue &= ~(1 << 5);
+    if (rts)
+        wValue &= ~(1 << 6);
 
     setup->bmRequestType = USB_REQUEST_DIR_OUT | USB_REQUEST_VENDOR | USB_REQUEST_RECIPIENT_DEVICE;
-    setup->bRequest = CH34X_SERIAL_INIT;
-    setup->wValue = value;
-    setup->wIndex = (factor << 8) | 0x80 | divisor;
+    setup->bRequest = CH341_REQ_MODEM_CTRL;
+    setup->wValue = wValue;
+    setup->wIndex = 0;
     setup->wLength = 0;
 
     return usbh_control_transfer(serial->hport, setup, NULL);
@@ -131,25 +95,93 @@ static int ch34x_set_line_coding(struct usbh_serial *serial, struct cdc_line_cod
 
 static int ch34x_set_line_state(struct usbh_serial *serial, bool dtr, bool rts)
 {
-    struct usb_setup_packet *setup;
-    struct ch34x_priv *priv = (struct ch34x_priv *)serial->priv;
+    struct ch34x_private *private = get_private(serial);
 
+    if (!private)
+        return -USB_ERR_INVAL;
     if (!serial || !serial->hport)
+        return -USB_ERR_INVAL;
+
+    private->dtr_state = dtr;
+    private->rts_state = rts;
+
+    return ch34x_write_handshake(serial, dtr, rts);
+}
+
+static int ch34x_set_line_coding(struct usbh_serial *serial, struct cdc_line_coding *line_coding)
+{
+    struct usb_setup_packet *setup;
+    struct ch34x_private *private = get_private(serial);
+    uint16_t reg_value = 0;
+    uint16_t value = 0;
+    uint8_t factor = 0;
+    uint8_t divisor = 0;
+    int ret;
+
+    if (!serial || !serial->hport || !private)
         return -USB_ERR_INVAL;
     setup = serial->hport->setup;
 
-    priv->dtr_state = dtr;
-    priv->rts_state = rts;
+    reg_value = CH341_LCR_ENABLE_RX | CH341_LCR_ENABLE_TX;
 
-    uint16_t wValue = 0x0f;
-    if (priv->dtr_state)
-        wValue |= (1 << 5);
-    if (priv->rts_state)
-        wValue |= (1 << 6);
+    switch (line_coding->bDataBits) {
+        case 5:
+            reg_value |= CH341_LCR_CS5;
+            break;
+        case 6:
+            reg_value |= CH341_LCR_CS6;
+            break;
+        case 7:
+            reg_value |= CH341_LCR_CS7;
+            break;
+        case 8:
+            reg_value |= CH341_LCR_CS8;
+            break;
+        default:
+            return -USB_ERR_INVAL;
+    }
+
+    if (line_coding->bParityType) {
+        reg_value |= CH341_LCR_ENABLE_PAR;
+        if (line_coding->bParityType == 2)
+            reg_value |= CH341_LCR_PAR_EVEN;
+        if (line_coding->bParityType == 3)
+            reg_value |= CH341_LCR_MARK_SPACE;
+    }
+
+    if (line_coding->bCharFormat == 2) {
+        reg_value |= CH341_LCR_STOP_BITS_2;
+    }
+
+    value |= 0x9c;
+    value |= (reg_value << 8);
+
+    ret = usbh_ch34x_get_baudrate_div(line_coding->dwDTERate, &factor, &divisor);
+    if (ret < 0)
+        return ret;
 
     setup->bmRequestType = USB_REQUEST_DIR_OUT | USB_REQUEST_VENDOR | USB_REQUEST_RECIPIENT_DEVICE;
-    setup->bRequest = CH34X_MODEM_CTRL;
-    setup->wValue = wValue;
+    setup->bRequest = CH341_REQ_SERIAL_INIT;
+    setup->wValue = value;
+    setup->wIndex = (factor << 8) | 0x80 | divisor;
+    setup->wLength = 0;
+
+    ret = usbh_control_transfer(serial->hport, setup, NULL);
+    if (ret < 0)
+        return ret;
+
+    return ch34x_write_handshake(serial, private->dtr_state, private->rts_state);
+}
+
+static int ch34x_set_flow_control(struct usbh_serial *serial, bool enable)
+{
+    struct usb_setup_packet *setup = serial->hport->setup;
+    uint16_t wIndex = enable ? 0x0101 : 0x0000;
+
+    setup->bmRequestType = USB_REQUEST_DIR_OUT | USB_REQUEST_VENDOR | USB_REQUEST_RECIPIENT_DEVICE;
+    setup->bRequest = CH341_REQ_WRITE_REG;
+    setup->wValue = 0x2727;
+    setup->wIndex = wIndex;
     setup->wLength = 0;
 
     return usbh_control_transfer(serial->hport, setup, NULL);
@@ -158,20 +190,18 @@ static int ch34x_set_line_state(struct usbh_serial *serial, bool dtr, bool rts)
 static int ch34x_attach(struct usbh_serial *serial)
 {
     struct usb_setup_packet *setup = serial->hport->setup;
-    struct ch34x_priv *priv;
+    struct ch34x_private *private = get_private(serial);
     int ret;
     uint8_t *buffer = serial->io_buf;
 
-    /* Allocate Private Data */
-    priv = usb_osal_malloc(sizeof(struct ch34x_priv));
-    if (!priv)
+    /* Init Private Data */
+    if (!private)
         return -USB_ERR_NOMEM;
-    memset(priv, 0, sizeof(struct ch34x_priv));
-    serial->priv = priv;
+    memset(private, 0, sizeof(struct ch34x_private));
 
     /* Read Version */
     setup->bmRequestType = USB_REQUEST_DIR_IN | USB_REQUEST_VENDOR | USB_REQUEST_RECIPIENT_DEVICE;
-    setup->bRequest = CH34X_READ_VERSION;
+    setup->bRequest = CH341_REQ_READ_VERSION;
     setup->wValue = 0;
     setup->wIndex = 0;
     setup->wLength = 2;
@@ -182,22 +212,23 @@ static int ch34x_attach(struct usbh_serial *serial)
 
     USB_LOG_INFO("Ch34x chip version %02x:%02x\r\n", buffer[0], buffer[1]);
 
-    /* Flow Control Init */
-    setup->bmRequestType = USB_REQUEST_DIR_OUT | USB_REQUEST_VENDOR | USB_REQUEST_RECIPIENT_DEVICE;
-    setup->bRequest = CH34X_WRITE_REG;
-    setup->wValue = 0x2727;
-    setup->wIndex = 0;
-    setup->wLength = 0;
+    /* Disable Flow Control */
+    ret = ch34x_set_flow_control(serial, false);
+    if (ret < 0) {
+        USB_LOG_WRN("Ch34x disable flow control failed\r\n");
+    }
 
-    ret = usbh_control_transfer(serial->hport, setup, NULL);
+    /* Set default lines */
+    ret = ch34x_write_handshake(serial, false, false);
+
     return ret;
 }
 
 static void ch34x_detach(struct usbh_serial *serial)
 {
-    if (serial->priv) {
-        usb_osal_free(serial->priv);
-        serial->priv = NULL;
+    struct ch34x_private *private = get_private(serial);
+    if (private) {
+        memset(private, 0, sizeof(struct ch34x_private));
     }
 }
 
@@ -207,6 +238,7 @@ static const struct usbh_serial_driver ch34x_drv = {
     .detach = ch34x_detach,
     .set_line_coding = ch34x_set_line_coding,
     .set_line_state = ch34x_set_line_state,
+    .set_flow_control = ch34x_set_flow_control,
 };
 
 static int usbh_ch34x_connect(struct usbh_hubport *hport, uint8_t intf)
