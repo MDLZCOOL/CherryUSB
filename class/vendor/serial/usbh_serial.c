@@ -5,6 +5,9 @@
 #include "usb_log.h"
 
 #define DEV_FORMAT "/dev/ttyUSB%d"
+#define DEV_FORMAT_CDC_ACM "/dev/ttyACM%d"
+#define GET_SERIAL_DEV_FMT(driver_name) \
+    ((driver_name && strcmp(driver_name, "cdc_acm") == 0) ? DEV_FORMAT_CDC_ACM : DEV_FORMAT)
 
 /* Pool allocator for serial instances */
 #define SERIAL_IOBUF_SIZE               64
@@ -33,6 +36,110 @@ static void usbh_serial_free(struct usbh_serial *serial)
     uint8_t devno = serial->minor;
     if (devno < 32) {
         g_devinuse &= ~(1U << devno);
+    }
+}
+
+static void usbh_serial_urb_rx_cb(void *arg, int nbytes)
+{
+    struct usbh_serial *serial = (struct usbh_serial *)arg;
+    struct usbh_urb *urb = &serial->bulkin_urb;
+    int len = nbytes;
+
+    if (!serial || !serial->rx_cb) {
+        return;
+    }
+
+    usbh_serial_rx_cb_t user_cb = serial->rx_cb;
+    void *user_arg = serial->rx_cb_arg;
+
+    serial->rx_cb = NULL;
+    serial->rx_cb_arg = NULL;
+
+    if (len > 0) {
+        user_cb(user_arg, urb->transfer_buffer, (uint32_t)len);
+    }
+}
+
+int usbh_serial_write(struct usbh_serial *serial, const uint8_t *buffer, uint32_t buflen, uint32_t timeout)
+{
+    int ret;
+    struct usbh_urb *urb;
+
+    if (!serial || !serial->bulkout){
+        return -USB_ERR_INVAL;
+    }
+    urb = &serial->bulkout_urb;
+
+    usbh_bulk_urb_fill(urb, serial->hport, serial->bulkout, (uint8_t *)buffer, buflen, timeout, NULL, NULL);
+    ret = usbh_submit_urb(urb);
+
+    if (ret == 0) {
+        ret = urb->actual_length;
+    }
+    return ret;
+}
+
+int usbh_serial_read(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen, uint32_t timeout)
+{
+    int ret;
+    struct usbh_urb *urb;
+
+    if (!serial || !serial->bulkin) {
+        return -USB_ERR_INVAL;
+    }
+    if (serial->rx_cb) {
+        return -USB_ERR_BUSY;
+    }
+
+    urb = &serial->bulkin_urb;
+
+    usbh_bulk_urb_fill(urb, serial->hport, serial->bulkin, buffer, buflen, timeout, NULL, NULL);
+    ret = usbh_submit_urb(urb);
+
+    if (ret == 0) {
+        ret = urb->actual_length;
+    } else if (ret == -USB_ERR_TIMEOUT) {
+        if (urb->actual_length > 0) {
+            ret = urb->actual_length;
+        } else {
+            ret = -USB_ERR_TIMEOUT;
+        }
+    }
+
+    return ret;
+}
+
+int usbh_serial_start_read_it(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen,
+                           usbh_serial_rx_cb_t cb, void *arg)
+{
+    struct usbh_urb *urb;
+    int ret;
+
+    if (!serial || !serial->bulkin || !buffer || !cb) return -USB_ERR_INVAL;
+    if (serial->rx_cb) return -USB_ERR_BUSY;
+
+    serial->rx_cb = cb;
+    serial->rx_cb_arg = arg;
+
+    urb = &serial->bulkin_urb;
+
+    usbh_bulk_urb_fill(urb, serial->hport, serial->bulkin, buffer, buflen,
+                       0, usbh_serial_urb_rx_cb, serial);
+
+    ret = usbh_submit_urb(urb);
+    if (ret < 0) {
+        serial->rx_cb = NULL;
+        return ret;
+    }
+    return 0;
+}
+
+void usbh_serial_stop_read_it(struct usbh_serial *serial)
+{
+    if (serial && serial->bulkin) {
+        serial->rx_cb = NULL;
+        serial->rx_cb_arg = NULL;
+        usbh_kill_urb(&serial->bulkin_urb);
     }
 }
 
@@ -71,12 +178,6 @@ struct usbh_serial *usbh_serial_probe(struct usbh_hubport *hport, uint8_t intf,
         }
     }
 
-    if (!serial->bulkin || !serial->bulkout) {
-        USB_LOG_ERR("Serial endpoints not found\r\n");
-        usbh_serial_free(serial);
-        return NULL;
-    }
-
     if (driver->attach) {
         ret = driver->attach(serial);
         if (ret < 0) {
@@ -86,7 +187,13 @@ struct usbh_serial *usbh_serial_probe(struct usbh_hubport *hport, uint8_t intf,
         }
     }
 
-    snprintf(hport->config.intf[intf].devname, CONFIG_USBHOST_DEV_NAMELEN, DEV_FORMAT, serial->minor);
+    if (!serial->bulkin || !serial->bulkout) {
+        USB_LOG_ERR("Serial endpoints not found\r\n");
+        usbh_serial_free(serial);
+        return NULL;
+    }
+
+    snprintf(hport->config.intf[intf].devname, CONFIG_USBHOST_DEV_NAMELEN, GET_SERIAL_DEV_FMT(driver->driver_name), serial->minor);
     USB_LOG_INFO("Register USB Serial: %s (%s)\r\n", hport->config.intf[intf].devname, driver->driver_name);
 
     return serial;
@@ -108,52 +215,8 @@ void usbh_serial_release(struct usbh_serial *serial)
         serial->driver->detach(serial);
     }
 
-    USB_LOG_INFO("Unregister USB Serial: /dev/ttyUSB%d\r\n", serial->minor);
+    USB_LOG_INFO("Unregister USB Serial: %s (%s)\r\n", serial->hport->config.intf[serial->intf].devname, serial->driver->driver_name);
     usbh_serial_free(serial);
-}
-
-int usbh_serial_bulk_in_transfer(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen, uint32_t timeout)
-{
-    int ret;
-    struct usbh_urb *urb = &serial->bulkin_urb;
-
-    if (!serial || !serial->bulkin)
-        return -USB_ERR_INVAL;
-
-    usbh_bulk_urb_fill(urb, serial->hport, serial->bulkin, buffer, buflen, timeout, NULL, NULL);
-    ret = usbh_submit_urb(urb);
-
-    if (ret == 0) {
-        ret = urb->actual_length;
-    } else if (ret == -USB_ERR_TIMEOUT) {
-        if (urb->actual_length > 0) {
-            ret = urb->actual_length;
-        } else {
-            ret = -USB_ERR_TIMEOUT;
-        }
-    }
-
-    if (ret > 0 && serial->driver->bulk_in_process) {
-        ret = serial->driver->bulk_in_process(serial, buffer, ret);
-    }
-
-    return ret;
-}
-
-int usbh_serial_bulk_out_transfer(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen, uint32_t timeout)
-{
-    int ret;
-    struct usbh_urb *urb = &serial->bulkout_urb;
-
-    if (!serial || !serial->bulkout)
-        return -USB_ERR_INVAL;
-
-    usbh_bulk_urb_fill(urb, serial->hport, serial->bulkout, buffer, buflen, timeout, NULL, NULL);
-    ret = usbh_submit_urb(urb);
-    if (ret == 0) {
-        ret = urb->actual_length;
-    }
-    return ret;
 }
 
 int usbh_serial_set_line_coding(struct usbh_serial *serial, uint32_t baudrate,
@@ -169,6 +232,17 @@ int usbh_serial_set_line_coding(struct usbh_serial *serial, uint32_t baudrate,
         return serial->driver->set_line_coding(serial, &coding);
     }
     return -USB_ERR_NOTSUPP;
+}
+
+int usbh_serial_set_flow_control(struct usbh_serial *serial, bool enable)
+{
+    if (serial && serial->driver && serial->driver->set_flow_control) {
+        return serial->driver->set_flow_control(serial, enable);
+    }
+    if (enable) {
+        return -USB_ERR_NOTSUPP;
+    }
+    return 0;
 }
 
 int usbh_serial_set_dtr_rts(struct usbh_serial *serial, bool dtr, bool rts)

@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+typedef void (*usbh_serial_rx_cb_t)(void *arg, uint8_t *data, uint32_t len);
+
 struct usbh_serial;
 
 /**
@@ -22,8 +24,7 @@ struct usbh_serial_driver {
     int (*set_line_coding)(struct usbh_serial *serial, struct cdc_line_coding *line_coding);
     int (*get_line_coding)(struct usbh_serial *serial, struct cdc_line_coding *line_coding);
     int (*set_line_state)(struct usbh_serial *serial, bool dtr, bool rts);
-
-    int (*bulk_in_process)(struct usbh_serial *serial, uint8_t *buf, uint32_t len);
+    int (*set_flow_control)(struct usbh_serial *serial, bool enable);
 };
 
 /**
@@ -40,19 +41,21 @@ struct usbh_serial {
     struct usbh_urb bulkin_urb;
 
     const struct usbh_serial_driver *driver;
-
-    void *priv;
     uint8_t *io_buf;
+    usbh_serial_rx_cb_t rx_cb;
+    void *rx_cb_arg;
 };
 
 struct usbh_serial *usbh_serial_probe(struct usbh_hubport *hport, uint8_t intf,
                                       const struct usbh_serial_driver *driver);
 void usbh_serial_release(struct usbh_serial *serial);
-int usbh_serial_bulk_in_transfer(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen, uint32_t timeout);
-int usbh_serial_bulk_out_transfer(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen, uint32_t timeout);
-int usbh_serial_set_line_coding(struct usbh_serial *serial, uint32_t baudrate,
-                                uint8_t databits, uint8_t parity, uint8_t stopbits);
+int usbh_serial_set_line_coding(struct usbh_serial *serial, uint32_t baudrate, uint8_t databits, uint8_t parity, uint8_t stopbits);
+int usbh_serial_set_flow_control(struct usbh_serial *serial, bool enable);
 int usbh_serial_set_dtr_rts(struct usbh_serial *serial, bool dtr, bool rts);
+int usbh_serial_write(struct usbh_serial *serial, const uint8_t *buffer, uint32_t buflen, uint32_t timeout);
+int usbh_serial_read(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen, uint32_t timeout);
+int usbh_serial_start_read_it(struct usbh_serial *serial, uint8_t *buffer, uint32_t buflen, usbh_serial_rx_cb_t cb, void *arg);
+void usbh_serial_stop_read_it(struct usbh_serial *serial);
 
 #ifdef __cplusplus
 }
