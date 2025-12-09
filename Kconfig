@@ -362,6 +362,11 @@ if CHERRYUSB
             default n
 
         if CHERRYUSB_HOST_SERIAL
+            config CHERRYUSB_HOST_SERIAL_CDC_ACM
+                bool
+                prompt "Enable usb serial cdc acm driver"
+                default n
+
             config CHERRYUSB_HOST_FTDI
                 bool
                 prompt "Enable usb ftdi driver"
