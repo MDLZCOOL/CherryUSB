@@ -206,10 +206,10 @@ usbh_serial_write
 
 - **serial**  serial 结构体句柄
 - **buffer**  数据缓冲区指针
-- **buflen**  要写入的数据长度，如果是 USB2TTL 设备，一次最高 wMaxPacketSize
+- **buflen**  要写入的数据长度
 - **return**  实际写入的数据长度或者错误码
 
-.. note:: 有无设置波特率都可以使用该 API，当未设置波特率时，长度无限制，如果设置了波特率则为 wMaxPacketSize。
+.. note:: 如果没有开启 CONFIG_USB_DCACHE_ENABLE，则 buffer 需要是 nocache区域，否则需要是对齐到 CONFIG_USB_ALIGN_SIZE 的区域。
 
 usbh_serial_read
 """"""""""""""""""""""""""""""""""""
@@ -224,6 +224,8 @@ usbh_serial_read
 - **buffer**  数据缓冲区指针
 - **buflen**  要读取的最大数据长度
 - **return**  实际读取的数据长度或者错误码
+
+.. note::  由于内部使用了 ringbuffer，对于用户的 buffer 属性没有限制。
 
 usbh_serial_cdc_write_async
 """"""""""""""""""""""""""""""""""""
@@ -241,6 +243,8 @@ usbh_serial_cdc_write_async
 - **arg**  回调函数参数
 - **return**  0 表示正常其他表示错误
 
+.. note:: 如果没有开启 CONFIG_USB_DCACHE_ENABLE，则 buffer 需要是 nocache区域，否则需要是对齐到 CONFIG_USB_ALIGN_SIZE 的区域。
+
 usbh_serial_cdc_read_async
 """"""""""""""""""""""""""""""""""""
 
@@ -257,6 +261,7 @@ usbh_serial_cdc_read_async
 - **arg**  回调函数参数
 - **return**  0 表示正常其他表示错误
 
+.. note:: 如果没有开启 CONFIG_USB_DCACHE_ENABLE，则 buffer 需要是 nocache区域，否则需要是对齐到 CONFIG_USB_ALIGN_SIZE 的区域。
 
 HID
 -----------------
@@ -264,5 +269,49 @@ HID
 MSC
 -----------------
 
+usbh_msc_scsi_init
+""""""""""""""""""""""""""""""""""""
+
+``usbh_msc_scsi_init`` 初始化 msc scsi 设备。获取 MSC 状态和容量信息。
+
+.. code-block:: C
+
+    int usbh_msc_scsi_init(struct usbh_msc *msc_class);
+
+- **msc_class**  msc 结构体句柄
+- **return**  0 表示正常其他表示错误
+
+usbh_msc_scsi_write10
+""""""""""""""""""""""""""""""""""""
+
+``usbh_msc_scsi_write10`` 向 msc 设备写数据。
+
+.. code-block:: C
+
+    int usbh_msc_scsi_write10(struct usbh_msc *msc_class, uint32_t start_sector, const uint8_t *buffer, uint32_t nsectors);
+
+- **msc_class**  msc 结构体句柄
+- **start_sector**  起始扇区
+- **buffer**  数据缓冲区指针
+- **nsectors**  要写入的扇区数
+- **return**  返回 0 表示正常其他表示错误
+
+usbh_msc_scsi_read10
+""""""""""""""""""""""""""""""""""""
+
+``usbh_msc_scsi_read10`` 从 msc 设备读数据。
+
+.. code-block:: C
+
+    int usbh_msc_scsi_read10(struct usbh_msc *msc_class, uint32_t start_sector, uint8_t *buffer, uint32_t nsectors);
+
+- **msc_class**  msc 结构体句柄
+- **start_sector**  起始扇区
+- **buffer**  数据缓冲区指针
+- **nsectors**  要读取的扇区数
+- **return**  返回 0 表示正常其他表示错误
+
 NETWORK
 -----------------
+
+已对接 lwIP 协议栈或者其他网络协议栈，使用 socket API 即可。
