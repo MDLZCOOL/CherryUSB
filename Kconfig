@@ -476,6 +476,11 @@ if CHERRYUSB
                 prompt "demo for test net, no demo for this, you can use lwip api to test"
                 default n
                 depends on CHERRYUSB_HOST_CDC_ECM || CHERRYUSB_HOST_CDC_RNDIS || CHERRYUSB_HOST_CDC_NCM || CHERRYUSB_HOST_ASIX || CHERRYUSB_HOST_RTL8152
+            config TEST_USBIP_SERVER
+                bool
+                prompt "demo for usbip server"
+                default n
+                depends on CHERRYUSB_HOST
         endmenu
     endif
 endif
