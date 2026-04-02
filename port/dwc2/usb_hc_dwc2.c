@@ -1159,6 +1159,14 @@ static void dwc2_inchan_irq_handler(struct usbh_bus *bus, uint8_t ch_num)
     urb = chan->urb;
     //printf("s1:%08x\r\n", chan_intstatus);
 
+    /* URB can be released by usbh_kill_urb() from another context while
+     * CHH interrupt is still pending for this channel.
+     */
+    if (urb == NULL) {
+        USB_OTG_HC(ch_num)->HCINT = chan_intstatus;
+        return;
+    }
+
     if (chan_intstatus & USB_OTG_HCINT_CHH) {
         USB_OTG_HC(ch_num)->HCINT = chan_intstatus;
         if (chan_intstatus & USB_OTG_HCINT_XFRC) {
@@ -1300,6 +1308,14 @@ static void dwc2_outchan_irq_handler(struct usbh_bus *bus, uint8_t ch_num)
     chan = &g_dwc2_hcd[bus->hcd.hcd_id].chan_pool[ch_num];
     urb = chan->urb;
     //printf("s2:%08x\r\n", chan_intstatus);
+
+    /* URB can be released by usbh_kill_urb() from another context while
+     * CHH interrupt is still pending for this channel.
+     */
+    if (urb == NULL) {
+        USB_OTG_HC(ch_num)->HCINT = chan_intstatus;
+        return;
+    }
 
     if (chan_intstatus & USB_OTG_HCINT_CHH) {
         USB_OTG_HC(ch_num)->HCINT = chan_intstatus;
