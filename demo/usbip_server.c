@@ -20,8 +20,8 @@
 #define USBIP_SERVER_PORT 3240
 #define USBIP_PATH_LEN 256
 #define USBIP_BUSID_LEN 32
-#define USBIP_MAX_XFER 4096
-#define USBIP_DATA_XFER_TIMEOUT_MS 500
+#define USBIP_MAX_XFER 16384
+#define USBIP_DATA_XFER_TIMEOUT_MS 100
 
 #define USBIP_VERSION 0x0111
 #define USBIP_OP_REQ_DEVLIST 0x8005
@@ -278,7 +278,21 @@ static int usbip_do_data(struct usbh_hubport *hport,
 {
     struct usbh_urb urb;
     int ret;
-    uint32_t timeout = dir_in ? USBIP_DATA_XFER_TIMEOUT_MS : USB_OSAL_WAITING_FOREVER;
+    uint32_t timeout = USBIP_DATA_XFER_TIMEOUT_MS;
+
+    /* Keep polling latency low for HID interrupt IN endpoints */
+    if (dir_in && USB_GET_ENDPOINT_TYPE(ep->bmAttributes) == USB_ENDPOINT_TYPE_INTERRUPT) {
+        uint32_t poll_ms = interval;
+        if (poll_ms < 4) {
+            poll_ms = 4;
+        } else if (poll_ms > 32) {
+            poll_ms = 32;
+        }
+        timeout = poll_ms * 2;
+    } else if (!dir_in) {
+        /* Avoid blocking forever so host-side UNLINK can be handled quickly */
+        timeout = 1000;
+    }
 
     memset(&urb, 0, sizeof(urb));
     if (USB_GET_ENDPOINT_TYPE(ep->bmAttributes) == USB_ENDPOINT_TYPE_INTERRUPT) {
@@ -412,7 +426,12 @@ static int usbip_handle_unlink(int fd, const struct usbip_header_basic *req_hdr)
     rep_hdr.ep = req_hdr->ep;
 
     memset(&rep, 0, sizeof(rep));
-    rep.status = htonl(0);
+    /*
+     * This server currently processes URBs synchronously, so there is no
+     * outstanding async submit to cancel here. Tell client "not found" to
+     * avoid duplicate giveback warnings in vhci_hcd.
+     */
+    rep.status = htonl((uint32_t)(-ENOENT));
 
     if (usbip_send_all(fd, &rep_hdr, sizeof(rep_hdr)) < 0 ||
         usbip_send_all(fd, &rep, sizeof(rep)) < 0) {
