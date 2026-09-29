@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>USB OTG &mdash; CherryUSB 1.6.0 documentation</title>
+  <title>USB OTG &mdash; CherryUSB 1.6.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=72d88caf"></script>
+      <script src="../_static/documentation_options.js?v=d6a008b6"></script>
       <script src="../_static/doctools.js?v=9a2dae69"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -51,6 +51,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../quick_start/q%26a.html">Q &amp; A</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quick_start/migration.html">部分改动迁移指南</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quick_start/opensource.html">基于 CherryUSB 的开源项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quick_start/usb_speed.html">USB 极限速度测试</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">USB 基本知识点</span></p>
 <ul>
@@ -162,7 +163,7 @@
              
   <section id="usb-otg">
 <h1>USB OTG<a class="headerlink" href="#usb-otg" title="Link to this heading"></a></h1>
-<p>如果需要使用 OTG 功能，首先使用的芯片需要支持 ID 检测功能，然后使能 <code class="docutils literal notranslate"><span class="pre">CONFIG_USB_OTG_ENABLE</span></code> 宏，将之前的例程中 <code class="docutils literal notranslate"><span class="pre">usbh_initialize</span></code> 或者 <code class="docutils literal notranslate"><span class="pre">usbh_initialize</span></code>
+<p>如果需要使用 OTG 功能，首先使用的芯片需要支持 ID 检测功能，然后使能 <code class="docutils literal notranslate"><span class="pre">CONFIG_USB_OTG_ENABLE</span></code> 宏，将之前的例程中 <code class="docutils literal notranslate"><span class="pre">usbd_initialize</span></code> 或者 <code class="docutils literal notranslate"><span class="pre">usbh_initialize</span></code>
 替换成 <code class="docutils literal notranslate"><span class="pre">usbotg_initialize</span></code> 即可。</p>
 <p>ID 检测电路根据不同的 USB 接口类型有所不同，常见的有 micro-USB 和 USB-C 两种接口类型。</p>
 <ul class="simple">

@@ -6,20 +6,20 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>基于 CherryUSB 的开源项目 &mdash; CherryUSB 1.6.0 documentation</title>
+  <title>基于 CherryUSB 的开源项目 &mdash; CherryUSB 1.6.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=72d88caf"></script>
+      <script src="../_static/documentation_options.js?v=d6a008b6"></script>
       <script src="../_static/doctools.js?v=9a2dae69"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="USB 基本概念(2.0 为主)" href="../usb/usb2.0_basic.html" />
+    <link rel="next" title="USB 极限速度测试" href="usb_speed.html" />
     <link rel="prev" title="部分改动迁移指南" href="migration.html" /> 
 </head>
 
@@ -51,6 +51,7 @@
 <li class="toctree-l1"><a class="reference internal" href="q%26a.html">Q &amp; A</a></li>
 <li class="toctree-l1"><a class="reference internal" href="migration.html">部分改动迁移指南</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">基于 CherryUSB 的开源项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usb_speed.html">USB 极限速度测试</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">USB 基本知识点</span></p>
 <ul>
@@ -239,25 +240,29 @@
 <td><p>rombrew</p></td>
 <td><p><a class="reference external" href="https://github.com/rombrew/phobia">https://github.com/rombrew/phobia</a></p></td>
 </tr>
-<tr class="row-even"><td><p>FMT-Firmware</p></td>
-<td><p>Firmament-Autopilot</p></td>
-<td><p><a class="reference external" href="https://github.com/Firmament-Autopilot/FMT-Firmware">https://github.com/Firmament-Autopilot/FMT-Firmware</a></p></td>
-</tr>
-<tr class="row-odd"><td><p>sdk-bsp-stm32h7r-realthread-artpi2</p></td>
+<tr class="row-even"><td><p>sdk-bsp-stm32h7r-realthread-artpi2</p></td>
 <td><p>RT-Thread</p></td>
 <td><p><a class="reference external" href="https://github.com/RT-Thread-Studio/sdk-bsp-stm32h7r-realthread-artpi2">https://github.com/RT-Thread-Studio/sdk-bsp-stm32h7r-realthread-artpi2</a></p></td>
 </tr>
-<tr class="row-even"><td><p>sdk-bsp-psoc_e84-edgi-talk</p></td>
+<tr class="row-odd"><td><p>sdk-bsp-psoc_e84-edgi-talk</p></td>
 <td><p>RT-Thread</p></td>
 <td><p><a class="reference external" href="https://github.com/RT-Thread-Studio/sdk-bsp-psoc_e84-edgi-talk">https://github.com/RT-Thread-Studio/sdk-bsp-psoc_e84-edgi-talk</a></p></td>
 </tr>
-<tr class="row-odd"><td><p>sdk-bsp-rk3506-realthread-ruichingpi</p></td>
+<tr class="row-even"><td><p>sdk-bsp-rk3506-realthread-ruichingpi</p></td>
 <td><p>RT-Thread</p></td>
 <td><p><a class="reference external" href="https://github.com/RT-Thread-Studio/sdk-bsp-rk3506-realthread-ruichingpi">https://github.com/RT-Thread-Studio/sdk-bsp-rk3506-realthread-ruichingpi</a></p></td>
 </tr>
-<tr class="row-even"><td><p>f1c200s_library</p></td>
+<tr class="row-odd"><td><p>f1c200s_library</p></td>
 <td><p>lhdjply</p></td>
 <td><p><a class="reference external" href="https://gitee.com/lhdjply/f1c200s_library">https://gitee.com/lhdjply/f1c200s_library</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MuseCube</p></td>
+<td><p>dydcyy-gh</p></td>
+<td><p><a class="reference external" href="https://github.com/dydcyy-gh/MuseCube">https://github.com/dydcyy-gh/MuseCube</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>zmk</p></td>
+<td><p>OpenSiFli</p></td>
+<td><p><a class="reference external" href="https://github.com/OpenSiFli/zmk">https://github.com/OpenSiFli/zmk</a></p></td>
 </tr>
 </tbody>
 </table>
@@ -268,7 +273,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="migration.html" class="btn btn-neutral float-left" title="部分改动迁移指南" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../usb/usb2.0_basic.html" class="btn btn-neutral float-right" title="USB 基本概念(2.0 为主)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="usb_speed.html" class="btn btn-neutral float-right" title="USB 极限速度测试" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

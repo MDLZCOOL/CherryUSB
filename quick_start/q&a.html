@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Q &amp; A &mdash; CherryUSB 1.6.0 documentation</title>
+  <title>Q &amp; A &mdash; CherryUSB 1.6.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=72d88caf"></script>
+      <script src="../_static/documentation_options.js?v=d6a008b6"></script>
       <script src="../_static/doctools.js?v=9a2dae69"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -74,6 +74,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="migration.html">部分改动迁移指南</a></li>
 <li class="toctree-l1"><a class="reference internal" href="opensource.html">基于 CherryUSB 的开源项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usb_speed.html">USB 极限速度测试</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">USB 基本知识点</span></p>
 <ul>
@@ -269,7 +270,8 @@
 </section>
 <section id="config-usb-hs">
 <h2>CONFIG_USB_HS 何时使用<a class="headerlink" href="#config-usb-hs" title="Link to this heading"></a></h2>
-<p>当你的芯片硬件支持高速，并想初始化成高速模式时开启，相关 IP 会根据该宏配置内部或者外部 高速 PHY。</p>
+<p>当你的芯片硬件支持高速，并想初始化成高速模式时开启，相关 IP 会根据该宏配置内部或者外部 高速 PHY。
+需要注意，对于多 port 的情况，如果没有特别配置（比如某个口只支持全速，则该宏无效），否则所有 port 都会初始化成高速模式。</p>
 </section>
 <section id="failed-to-enable-port">
 <h2>Failed to enable port<a class="headerlink" href="#failed-to-enable-port" title="Link to this heading"></a></h2>
